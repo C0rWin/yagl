@@ -1,5 +1,3 @@
-
-```markdown
 # YAGL (Yet Another Go Logger)
 
 YAGL is a lightweight, powerful, and flexible logging library for Go. It provides an alternative implementation for application logging, focusing on simplicity and customizability.
