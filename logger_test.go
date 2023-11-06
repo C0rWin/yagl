@@ -49,3 +49,8 @@ func TestLogger(t *testing.T) {
 		})
 	}
 }
+
+func TestDebugMode(t *testing.T) {
+	l := New(StdFormatOption, DefaultStd, WithDebug, LogLevelOption(Debug), DebugFormatOption)
+	l.Logf(Debug, "Hello World")
+}

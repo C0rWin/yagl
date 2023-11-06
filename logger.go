@@ -2,17 +2,20 @@ package yagl
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"os"
+	"path"
+	"runtime"
 	"time"
 )
 
 var (
 	// Default logger format template
-	StdFormat = `{{.DateTime.Format "2006-01-02 15:04:05"}} [{{.Level}}]: {{.Message}}`
+	StdFormat = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] [{{.Level}}]: {{.Message}}`
 	// Default logger format template with package name and function name, mainly for debug purpose
-	DebugFormat = `{{.DateTime.Format "2006-01-02 15:04:05"}} ({{.PkgName}}/{{.FuncName}}) [{{.Level}}]: {{.Message}}`
+	DebugFormat = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] ({{.PkgName}}/{{.FuncName}}) [{{.Level}}]: {{.Message}}`
 )
 
 type Option func(*Logger)
@@ -53,6 +56,11 @@ func CustomLogOut(stdOut io.Writer) Option {
 	}
 }
 
+// WithDebug enables debug mode
+func WithDebug(l *Logger) {
+	l.debugEnabled = true
+}
+
 // loginfo is the log info struct, represents a log message
 // and information to be printed along aside with the message
 type loginfo struct {
@@ -65,10 +73,11 @@ type loginfo struct {
 
 // Logger is the logger struct
 type Logger struct {
-	format string
-	level  LogLevel
-	tmpl   *template.Template
-	stdOut io.Writer
+	format       string
+	level        LogLevel
+	tmpl         *template.Template
+	stdOut       io.Writer
+	debugEnabled bool
 }
 
 // New creates a new logger
@@ -101,9 +110,39 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
+	if l.debugEnabled {
+		fmt.Println("XXX")
+		pkgName, funcName, _ := getCallerInfo()
+		fmt.Println(pkgName, funcName)
+		return &loginfo{
+			DateTime: time.Now(),
+			Level:    level,
+			Message:  msg,
+			PkgName:  pkgName,
+			FuncName: funcName,
+		}
+	}
 	return &loginfo{
 		DateTime: time.Now(),
 		Level:    level,
 		Message:  msg,
 	}
+}
+
+// getCallerInfo gets the package name and function name of the caller
+func getCallerInfo() (pakageName, funcName string, line int) {
+	pc, _, line, ok := runtime.Caller(3)
+	if !ok {
+		return "undefined", "undefined", 0
+	}
+
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return "undefined", "undefined", 0
+	}
+
+	funcName = fn.Name()
+	pakageName = path.Dir(funcName)
+
+	return pakageName, path.Base(funcName), line
 }
