@@ -2,7 +2,6 @@ package yagl
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"io"
 	"os"
@@ -20,22 +19,18 @@ var (
 
 type Option func(*Logger)
 
-// StdFormatOption sets the logger format to the default format
-func StdFormatOption(l *Logger) {
-	l.format = StdFormat
-}
-
-// DebugFormatOption sets the logger format to the debug format
-func DebugFormatOption(l *Logger) {
-	l.format = DebugFormat
-}
-
 // CustomFormanOption sets the logger format to the custom format
 func CustomFormatOption(format string) Option {
 	return func(l *Logger) {
 		l.format = format
+		l.tmpl = template.Must(template.New("log").Parse(l.format))
 	}
 }
+
+var (
+	// StdFormatOption sets the logger format to the default format
+	StdFormatOption = CustomFormatOption(StdFormat)
+)
 
 // LogLevelOption sets the logger level
 func LogLevelOption(level LogLevel) Option {
@@ -59,6 +54,9 @@ func CustomLogOut(stdOut io.Writer) Option {
 // WithDebug enables debug mode
 func WithDebug(l *Logger) {
 	l.debugEnabled = true
+	// DebugFormatOption sets the logger format to the debug format
+	debugFormatOption := CustomFormatOption(DebugFormat)
+	debugFormatOption(l)
 }
 
 // loginfo is the log info struct, represents a log message
@@ -89,7 +87,6 @@ func New(opts ...Option) *Logger {
 	for _, opt := range opts {
 		opt(l)
 	}
-	l.tmpl = template.Must(template.New("log").Parse(l.format))
 	return l
 }
 
@@ -119,7 +116,6 @@ func (l *Logger) SetOptions(opt ...Option) {
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
 	if l.debugEnabled {
 		pkgName, funcName, _ := getCallerInfo()
-		fmt.Println(pkgName, funcName)
 		return &loginfo{
 			DateTime: time.Now(),
 			Level:    level,
