@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -76,6 +77,7 @@ type Logger struct {
 	tmpl         *template.Template
 	stdOut       io.Writer
 	debugEnabled bool
+	mtxOut       sync.Mutex
 }
 
 // New creates a new logger
@@ -99,6 +101,10 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		if err := l.tmpl.Execute(buffer, info); err != nil {
 			panic(err)
 		}
+
+		// Ensure logger could be used concurrently
+		l.mtxOut.Lock()
+		defer l.mtxOut.Unlock()
 
 		l.stdOut.Write(buffer.Bytes())
 		l.stdOut.Write([]byte("\n"))
