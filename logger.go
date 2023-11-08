@@ -108,10 +108,16 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	}
 }
 
+// SetOptions sets the logger options
+func (l *Logger) SetOptions(opt ...Option) {
+	for _, o := range opt {
+		o(l)
+	}
+}
+
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
 	if l.debugEnabled {
-		fmt.Println("XXX")
 		pkgName, funcName, _ := getCallerInfo()
 		fmt.Println(pkgName, funcName)
 		return &loginfo{
