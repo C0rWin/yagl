@@ -14,15 +14,15 @@ import (
 
 var (
 	// Default logger format template
-	StdFormat = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] [{{.Level}}]: {{.Message}}`
+	Std = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] [{{.Level}}]: {{.Message}}`
 	// Default logger format template with package name and function name, mainly for debug purpose
-	DebugFormat = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] ({{.PkgName}}/{{.FuncName}}) [{{.Level}}]: {{.Message}}`
+	Dbg = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] ({{.PkgName}}/{{.FuncName}}) [{{.Level}}]: {{.Message}}`
 )
 
-type Option func(*Logger)
+type Setting func(*Logger)
 
-// CustomFormanOption sets the logger format to the custom format
-func CustomFormatOption(format string) Option {
+// Format sets the logger format to the custom format
+func Format(format string) Setting {
 	return func(l *Logger) {
 		l.mtx.Lock()
 		defer l.mtx.Unlock()
@@ -32,14 +32,14 @@ func CustomFormatOption(format string) Option {
 }
 
 var (
-	// StdFormatOption sets the logger format to the default format
-	StdFormatOption = CustomFormatOption(StdFormat)
-	// DebugFormatOption sets the logger format to the debug format
-	DebugFormatOption = CustomFormatOption(DebugFormat)
+	// StdFormat sets the logger format to the default format
+	StdFormat = Format(Std)
+	// DebugFormat sets the logger format to the debug format
+	DebugFormat = Format(Dbg)
 )
 
-// LogLevelOption sets the logger level
-func LogLevelOption(level LogLevel) Option {
+// Level sets the logger level
+func Level(level LogLevel) Setting {
 	return func(l *Logger) {
 		l.mtx.Lock()
 		defer l.mtx.Unlock()
@@ -66,10 +66,16 @@ func DefaultStd(l *Logger) {
 }
 
 // CustomLogOut sets the logger output for different log levels
-func CustomLogOut(out io.Writer, levels ...LogLevel) Option {
+// if no log level is provided, all log levels will be set to the
+// provided writer. If a log level is provided, only that log level
+// will be set to the provided writer.
+func CustomLogOut(out io.Writer, levels ...LogLevel) Setting {
 	return func(l *Logger) {
 		l.mtx.Lock()
 		defer l.mtx.Unlock()
+		if len(levels) == 0 {
+			levels = []LogLevel{Debug, Info, Warn, Error}
+		}
 		for _, level := range levels {
 			l.levelOuts[level] = out
 		}
@@ -97,9 +103,9 @@ type Logger struct {
 }
 
 // New creates a new logger
-func New(opts ...Option) *Logger {
+func New(opts ...Setting) *Logger {
 	if len(opts) == 0 {
-		opts = append(opts, StdFormatOption, LogLevelOption(Info), DefaultStd)
+		opts = append(opts, StdFormat, Level(Info), DefaultStd)
 	}
 
 	l := &Logger{
@@ -138,8 +144,8 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 
 }
 
-// SetOptions sets the logger options
-func (l *Logger) SetOptions(opt ...Option) {
+// Setup sets the logger options
+func (l *Logger) Setup(opt ...Setting) {
 	for _, o := range opt {
 		o(l)
 	}
@@ -147,7 +153,7 @@ func (l *Logger) SetOptions(opt ...Option) {
 
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
-	if l.format == DebugFormat {
+	if l.format == Dbg {
 		pkgName, funcName, _ := getCallerInfo()
 		return &loginfo{
 			DateTime: time.Now(),

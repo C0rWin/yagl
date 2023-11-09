@@ -11,14 +11,14 @@ func TestLogger(t *testing.T) {
 	tests := []struct {
 		name     string
 		message  string
-		logLevel Option
+		logLevel Setting
 		log      func(l *Logger)
 		assert   func(t *testing.T, actual, expected string)
 	}{
 		{
 			name:     "Testing default logger trying to print a message with INFO level",
 			message:  "Hello World",
-			logLevel: LogLevelOption(Info),
+			logLevel: Level(Info),
 			log: func(l *Logger) {
 				l.Logf(Info, "Hello World")
 			},
@@ -30,7 +30,7 @@ func TestLogger(t *testing.T) {
 		{
 			name:     "Testing default logger trying to print a message with DEBUG level",
 			message:  "Hello World",
-			logLevel: LogLevelOption(Info),
+			logLevel: Level(Info),
 			log: func(l *Logger) {
 				l.Logf(Debug, "Hello World")
 			},
@@ -43,7 +43,7 @@ func TestLogger(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			buffer := bytes.NewBuffer(nil)
-			logger := New(CustomLogOut(buffer, Info, Debug, Warn, Error), StdFormatOption, test.logLevel)
+			logger := New(CustomLogOut(buffer), StdFormat, test.logLevel)
 			test.log(logger)
 			test.assert(t, buffer.String(), test.message)
 		})

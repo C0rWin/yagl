@@ -19,7 +19,7 @@ func main() {
 	logger.Logf(yagl.Debug, "This is a debug message")
 
 	// Update log level to Debug
-	logger.SetOptions(yagl.LogLevelOption(yagl.Debug))
+	logger.Setup(yagl.Level(yagl.Debug))
 
 	// After, updating the log level to Debug
 	// the following message should be printed:
@@ -28,7 +28,7 @@ func main() {
 
 	// Now we can also change to more detailed format to contain
 	// package name and function name
-	logger.SetOptions(yagl.DebugFormatOption)
+	logger.Setup(yagl.DebugFormat)
 
 	// The output should be similar to this:
 	// "[2023-11-09 00:56:33] [DEBUG]: [main.main]: This is a debug message"
