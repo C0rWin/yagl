@@ -4,7 +4,7 @@ package yagl
 type LogLevel int
 
 const (
-	Debug LogLevel = iota
+	Debug LogLevel = 1 << iota
 	Warn
 	Info
 	Error

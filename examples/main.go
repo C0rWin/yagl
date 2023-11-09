@@ -28,7 +28,7 @@ func main() {
 
 	// Now we can also change to more detailed format to contain
 	// package name and function name
-	logger.SetOptions(yagl.WithDebug)
+	logger.SetOptions(yagl.DebugFormatOption)
 
 	// The output should be similar to this:
 	// "[2023-11-09 00:56:33] [DEBUG]: [main.main]: This is a debug message"

@@ -2,6 +2,7 @@ package yagl
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"os"
@@ -23,6 +24,8 @@ type Option func(*Logger)
 // CustomFormanOption sets the logger format to the custom format
 func CustomFormatOption(format string) Option {
 	return func(l *Logger) {
+		l.mtx.Lock()
+		defer l.mtx.Unlock()
 		l.format = format
 		l.tmpl = template.Must(template.New("log").Parse(l.format))
 	}
@@ -31,33 +34,46 @@ func CustomFormatOption(format string) Option {
 var (
 	// StdFormatOption sets the logger format to the default format
 	StdFormatOption = CustomFormatOption(StdFormat)
+	// DebugFormatOption sets the logger format to the debug format
+	DebugFormatOption = CustomFormatOption(DebugFormat)
 )
 
 // LogLevelOption sets the logger level
 func LogLevelOption(level LogLevel) Option {
 	return func(l *Logger) {
+		l.mtx.Lock()
+		defer l.mtx.Unlock()
 		l.level = level
 	}
 }
 
-// DefaultLogPrinterOption sets the logger printer to the default printer
+// DefaultStd sets the logger output for different log levels
+// default output writers. All but Error log level are set to
+// os.Stdout and the Error level set to the os.Stder
+//
+// It's possible to overwrite the default output writers with
+// CustomLogOut option, where for each log level a custom writer
+// could be defined
 func DefaultStd(l *Logger) {
-	l.stdOut = os.Stdout
-}
-
-// CustomLogOut(stdOut io.Writer) sets the logger printer to the custom printer
-func CustomLogOut(stdOut io.Writer) Option {
-	return func(l *Logger) {
-		l.stdOut = stdOut
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	l.levelOuts = map[LogLevel]io.Writer{
+		Debug: os.Stdout,
+		Info:  os.Stdout,
+		Warn:  os.Stdout,
+		Error: os.Stderr,
 	}
 }
 
-// WithDebug enables debug mode
-func WithDebug(l *Logger) {
-	l.debugEnabled = true
-	// DebugFormatOption sets the logger format to the debug format
-	debugFormatOption := CustomFormatOption(DebugFormat)
-	debugFormatOption(l)
+// CustomLogOut sets the logger output for different log levels
+func CustomLogOut(out io.Writer, levels ...LogLevel) Option {
+	return func(l *Logger) {
+		l.mtx.Lock()
+		defer l.mtx.Unlock()
+		for _, level := range levels {
+			l.levelOuts[level] = out
+		}
+	}
 }
 
 // loginfo is the log info struct, represents a log message
@@ -75,9 +91,9 @@ type Logger struct {
 	format       string
 	level        LogLevel
 	tmpl         *template.Template
-	stdOut       io.Writer
 	debugEnabled bool
-	mtxOut       sync.Mutex
+	mtx          sync.Mutex
+	levelOuts    map[LogLevel]io.Writer
 }
 
 // New creates a new logger
@@ -85,7 +101,10 @@ func New(opts ...Option) *Logger {
 	if len(opts) == 0 {
 		opts = append(opts, StdFormatOption, LogLevelOption(Info), DefaultStd)
 	}
-	l := &Logger{}
+
+	l := &Logger{
+		levelOuts: make(map[LogLevel]io.Writer),
+	}
 	for _, opt := range opts {
 		opt(l)
 	}
@@ -94,21 +113,29 @@ func New(opts ...Option) *Logger {
 
 // Log logs a message
 func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
-	if level >= l.level {
-		buffer := bytes.NewBuffer(nil)
-		info := l.logi(level, msg, args...)
-
-		if err := l.tmpl.Execute(buffer, info); err != nil {
-			panic(err)
-		}
-
-		// Ensure logger could be used concurrently
-		l.mtxOut.Lock()
-		defer l.mtxOut.Unlock()
-
-		l.stdOut.Write(buffer.Bytes())
-		l.stdOut.Write([]byte("\n"))
+	if level < l.level {
+		return
 	}
+
+	buffer := bytes.NewBuffer(nil)
+	info := l.logi(level, msg, args...)
+
+	if err := l.tmpl.Execute(buffer, info); err != nil {
+		panic(err)
+	}
+
+	// Ensure logger could be used concurrently
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+
+	// Write to the appropriate writer
+	if out, exists := l.levelOuts[level]; exists {
+		out.Write(buffer.Bytes())
+		out.Write([]byte("\n"))
+	} else {
+		panic(fmt.Sprintf("No writer for level %s", level.String()))
+	}
+
 }
 
 // SetOptions sets the logger options
@@ -120,12 +147,12 @@ func (l *Logger) SetOptions(opt ...Option) {
 
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
-	if l.debugEnabled {
+	if l.format == DebugFormat {
 		pkgName, funcName, _ := getCallerInfo()
 		return &loginfo{
 			DateTime: time.Now(),
 			Level:    level,
-			Message:  msg,
+			Message:  fmt.Sprintf(msg, args...),
 			PkgName:  pkgName,
 			FuncName: funcName,
 		}
@@ -133,7 +160,7 @@ func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo 
 	return &loginfo{
 		DateTime: time.Now(),
 		Level:    level,
-		Message:  msg,
+		Message:  fmt.Sprintf(msg, args...),
 	}
 }
 

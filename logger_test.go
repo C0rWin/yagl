@@ -43,14 +43,9 @@ func TestLogger(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			buffer := bytes.NewBuffer(nil)
-			logger := New(CustomLogOut(buffer), StdFormatOption, test.logLevel)
+			logger := New(CustomLogOut(buffer, Info, Debug, Warn, Error), StdFormatOption, test.logLevel)
 			test.log(logger)
 			test.assert(t, buffer.String(), test.message)
 		})
 	}
-}
-
-func TestDebugMode(t *testing.T) {
-	l := New(StdFormatOption, DefaultStd, WithDebug, LogLevelOption(Debug), DebugFormatOption)
-	l.Logf(Debug, "Hello World")
 }
