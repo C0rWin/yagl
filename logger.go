@@ -29,14 +29,13 @@ func (l *loginfo) MarshalJSON() ([]byte, error) {
 
 // Logger is the logger struct
 type Logger struct {
-	format       string
-	level        LogLevel
-	tmpl         *template.Template
-	debugEnabled bool
-	mtx          sync.Mutex
-	levelOuts    map[LogLevel]io.Writer
-	mapper       Mapper
-	isJson       bool
+	format    string
+	level     LogLevel
+	tmpl      *template.Template
+	mtx       sync.Mutex
+	levelOuts map[LogLevel]io.Writer
+	mapper    Mapper
+	isJson    bool
 }
 
 var Defaults = []Setting{StdFormat, Level(Info), DefaultStd, WithMapper(noOpMapper)}
@@ -77,11 +76,10 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		}
 		buffer.Write(json)
 		buffer.Write([]byte("\n"))
-		return
-	}
-
-	if err := l.tmpl.Execute(buffer, info); err != nil {
-		panic(err)
+	} else {
+		if err := l.tmpl.Execute(buffer, info); err != nil {
+			panic(err)
+		}
 	}
 
 	// Ensure logger could be used concurrently
@@ -90,8 +88,14 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 
 	// Write to the appropriate writer
 	if out, exists := l.levelOuts[level]; exists {
-		out.Write(buffer.Bytes())
-		out.Write([]byte("\n"))
+		_, err := out.Write(buffer.Bytes())
+		if err != nil {
+			panic(err)
+		}
+		_, err = out.Write([]byte("\n"))
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		panic(fmt.Sprintf("No writer for level %s", level.String()))
 	}
