@@ -2,6 +2,7 @@ package yagl
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -14,11 +15,16 @@ import (
 // loginfo is the log info struct, represents a log message
 // and information to be printed along aside with the message
 type loginfo struct {
-	DateTime time.Time
-	Level    LogLevel
-	Message  string
-	PkgName  string
-	FuncName string
+	DateTime time.Time `json:"datetime"`
+	Level    LogLevel  `json:"level"`
+	Message  string    `json:"message"`
+	PkgName  string    `json:"package_name"`
+	FuncName string    `json:"func_name"`
+}
+
+// MarshalJSON marshals the loginfo struct to json
+func (l *loginfo) MarshalJSON() ([]byte, error) {
+	return json.Marshal(l)
 }
 
 // Logger is the logger struct
@@ -30,6 +36,7 @@ type Logger struct {
 	mtx          sync.Mutex
 	levelOuts    map[LogLevel]io.Writer
 	mapper       Mapper
+	isJson       bool
 }
 
 var Defaults = []Setting{StdFormat, Level(Info), DefaultStd, WithMapper(noOpMapper)}
@@ -61,6 +68,17 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 
 	buffer := bytes.NewBuffer(nil)
 	info := l.logi(level, msg, args...)
+
+	if l.isJson {
+		// if json is enabled, marshal the loginfo struct to json
+		json, err := info.MarshalJSON()
+		if err != nil {
+			panic(err)
+		}
+		buffer.Write(json)
+		buffer.Write([]byte("\n"))
+		return
+	}
 
 	if err := l.tmpl.Execute(buffer, info); err != nil {
 		panic(err)

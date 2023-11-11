@@ -77,10 +77,16 @@ func CustomLogOut(out io.Writer, levels ...LogLevel) Setting {
 	}
 }
 
+// WithMapper sets the logger mapper
 func WithMapper(mapper Mapper) Setting {
 	return func(l *Logger) {
 		l.mtx.Lock()
 		defer l.mtx.Unlock()
 		l.mapper = mapper
 	}
+}
+
+// Json sets the logger format to json
+func Json(l *Logger) {
+	l.isJson = true
 }
