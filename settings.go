@@ -6,6 +6,13 @@ import (
 	"os"
 )
 
+const (
+	// Default logger format template
+	stdFormat = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] [{{.Level}}]: {{.Message}}`
+	// Default logger format template with package name and function name, mainly for debug purpose
+	dbgFormat = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] ({{.PkgName}}/{{.FuncName}}) [{{.Level}}]: {{.Message}}`
+)
+
 // Setting is a function that sets a logger option
 type Setting func(*Logger)
 
@@ -21,9 +28,9 @@ func Format(format string) Setting {
 
 var (
 	// StdFormat sets the logger format to the default format
-	StdFormat = Format(Std)
+	StdFormat = Format(stdFormat)
 	// DebugFormat sets the logger format to the debug format
-	DebugFormat = Format(Dbg)
+	DebugFormat = Format(dbgFormat)
 )
 
 // Level sets the logger level

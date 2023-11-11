@@ -11,13 +11,6 @@ import (
 	"time"
 )
 
-var (
-	// Default logger format template
-	Std = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] [{{.Level}}]: {{.Message}}`
-	// Default logger format template with package name and function name, mainly for debug purpose
-	Dbg = `[{{.DateTime.Format "2006-01-02 15:04:05"}}] ({{.PkgName}}/{{.FuncName}}) [{{.Level}}]: {{.Message}}`
-)
-
 // loginfo is the log info struct, represents a log message
 // and information to be printed along aside with the message
 type loginfo struct {
@@ -89,7 +82,7 @@ func (l *Logger) Setup(opt ...Setting) {
 
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
-	if l.format == Dbg {
+	if l.format == dbgFormat {
 		pkgName, funcName, _ := getCallerInfo()
 		return &loginfo{
 			DateTime: time.Now(),
