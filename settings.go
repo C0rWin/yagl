@@ -76,3 +76,11 @@ func CustomLogOut(out io.Writer, levels ...LogLevel) Setting {
 		}
 	}
 }
+
+func WithMapper(mapper Mapper) Setting {
+	return func(l *Logger) {
+		l.mtx.Lock()
+		defer l.mtx.Unlock()
+		l.mapper = mapper
+	}
+}

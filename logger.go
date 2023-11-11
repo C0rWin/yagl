@@ -29,12 +29,15 @@ type Logger struct {
 	debugEnabled bool
 	mtx          sync.Mutex
 	levelOuts    map[LogLevel]io.Writer
+	mapper       Mapper
 }
+
+var Defaults = []Setting{StdFormat, Level(Info), DefaultStd, WithMapper(noOpMapper)}
 
 // New creates a new logger
 func New(opts ...Setting) *Logger {
 	if len(opts) == 0 {
-		opts = append(opts, StdFormat, Level(Info), DefaultStd)
+		opts = Defaults
 	}
 
 	l := &Logger{
@@ -42,6 +45,10 @@ func New(opts ...Setting) *Logger {
 	}
 	for _, opt := range opts {
 		opt(l)
+	}
+	// ensure that the logger has a mapper
+	if l.mapper == nil {
+		l.mapper = noOpMapper
 	}
 	return l
 }
@@ -82,12 +89,17 @@ func (l *Logger) Setup(opt ...Setting) {
 
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
+	// mutate the message if needed
+	message := l.mapper(fmt.Sprintf(msg, args...))
 	if l.format == dbgFormat {
-		pkgName, funcName, _ := getCallerInfo()
+		// in case there is debug formatting is enabled
+		// there is a need to get the caller info to
+		// extract the package name and function name
+		pkgName, funcName, _ := getCallerInfo() // get package name and function name
 		return &loginfo{
 			DateTime: time.Now(),
 			Level:    level,
-			Message:  fmt.Sprintf(msg, args...),
+			Message:  message,
 			PkgName:  pkgName,
 			FuncName: funcName,
 		}
@@ -95,7 +107,7 @@ func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo 
 	return &loginfo{
 		DateTime: time.Now(),
 		Level:    level,
-		Message:  fmt.Sprintf(msg, args...),
+		Message:  message,
 	}
 }
 
