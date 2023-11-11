@@ -18,11 +18,11 @@ jobs:
       with:
         go-version: '1.21'
 
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test -v ./...
+    - name: Build & Test
+      run: |
+        go get -v
+        go test -timeout=60s -race
+        go build -v -race ./... 
 
     - name: linter
       uses: golangci/golangci-lint-action@v3
