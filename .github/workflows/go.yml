@@ -1,13 +1,10 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
+name: build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: 
+    tags:
   pull_request:
-    branches: [ "main" ]
 
 jobs:
 
@@ -26,3 +23,9 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: linter
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+
