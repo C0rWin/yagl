@@ -24,7 +24,7 @@ func TestLogger(t *testing.T) {
 			},
 			assert: func(t *testing.T, actual, expected string) {
 				require.Contains(t, actual, expected)
-				require.Contains(t, actual, Info)
+				require.Contains(t, actual, Info.String())
 			},
 		},
 		{
