@@ -79,7 +79,7 @@ YAGL is released under the MIT License. See the [LICENSE](LICENSE) file for more
 
 ## Authors
 
-- Artem Barger - *Initial work* - [YourUsername](https://github.com/C0rWin)
+- Artem Barger - *Initial work* - [@C0rWin](https://github.com/C0rWin)
 
 See also the list of [contributors](https://github.com/C0rWin/yagl/contributors) who participated in this project.
 
