@@ -9,10 +9,10 @@ type LogLevel int
 const (
 	// Debug log level
 	Debug LogLevel = 1 << iota
-	// Warn log level
-	Warn
 	// Info log level
 	Info
+	// Warn log level
+	Warn
 	// Error log level
 	Error
 )
