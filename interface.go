@@ -1,12 +1,19 @@
+// Package yagl is a Yet Another Go Logger, a simple logger for go.
+// Description: This file contains the interface for the logger. It is
+// used to define the log levels and the log level strings.
 package yagl
 
 // LogLevel is the level of logging.
 type LogLevel int
 
 const (
+	// Debug log level
 	Debug LogLevel = 1 << iota
+	// Warn log level
 	Warn
+	// Info log level
 	Info
+	// Error log level
 	Error
 )
 

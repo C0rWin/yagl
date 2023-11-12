@@ -86,7 +86,7 @@ func WithMapper(mapper Mapper) Setting {
 	}
 }
 
-// Json sets the logger format to json
-func Json(l *Logger) {
-	l.isJson = true
+// JSON sets the logger format to json
+func JSON(l *Logger) {
+	l.isJSON = true
 }
