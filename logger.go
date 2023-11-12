@@ -62,6 +62,10 @@ func New(opts ...Setting) *Logger {
 
 // Logf logs a message with given arguments and log level
 func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
+	// Ensure logger could be used concurrently
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+
 	if level < l.level {
 		return
 	}
@@ -82,10 +86,6 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 			panic(err)
 		}
 	}
-
-	// Ensure logger could be used concurrently
-	l.mtx.Lock()
-	defer l.mtx.Unlock()
 
 	// Write to the appropriate writer
 	if out, exists := l.levelOuts[level]; exists {
