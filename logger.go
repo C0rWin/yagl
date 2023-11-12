@@ -35,9 +35,10 @@ type Logger struct {
 	mtx       sync.Mutex
 	levelOuts map[LogLevel]io.Writer
 	mapper    Mapper
-	isJson    bool
+	isJSON    bool
 }
 
+// Defaults list of the default logger settings
 var Defaults = []Setting{StdFormat, Level(Info), DefaultStd, WithMapper(noOpMapper)}
 
 // New creates a new logger
@@ -59,7 +60,7 @@ func New(opts ...Setting) *Logger {
 	return l
 }
 
-// Log logs a message
+// Logf logs a message with given arguments and log level
 func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	if level < l.level {
 		return
@@ -68,14 +69,14 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	buffer := bytes.NewBuffer(nil)
 	info := l.logi(level, msg, args...)
 
-	if l.isJson {
-		// if json is enabled, marshal the loginfo struct to json
-		json, err := info.MarshalJSON()
+	if l.isJSON {
+		// if jsonMessage is enabled, marshal the loginfo struct to jsonMessage
+		jsonMessage, err := info.MarshalJSON()
 		if err != nil {
 			panic(err)
 		}
-		buffer.Write(json)
-		buffer.Write([]byte("\n"))
+		buffer.Write(jsonMessage)
+		buffer.WriteString("\n")
 	} else {
 		if err := l.tmpl.Execute(buffer, info); err != nil {
 			panic(err)
