@@ -2,6 +2,7 @@ package yagl
 
 import (
 	"bytes"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -54,4 +55,25 @@ func TestLoggerConcurrentUsage(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestLoggerHidingSecrets(t *testing.T) {
+	t.Parallel()
+	buffer := bytes.NewBuffer(nil)
+	logger := New(CustomLogOut(buffer), StdFormat, Level(Debug), WithMapper(func(s string) string {
+		return string(bytes.ReplaceAll([]byte(s), []byte("Secret"), []byte("********")))
+	}))
+	logger.Logf(Debug, "Hello Secret World")
+	require.Contains(t, buffer.String(), "Hello ******** World")
+	// Ensure that the original message is not logged and secret is wiped out
+	require.NotContains(t, buffer.String(), "Secret")
+
+	logger.Setup(WithMapper(func(s string) string {
+		emailRegEx := regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,4}`)
+		return emailRegEx.ReplaceAllString(s, "********")
+	}))
+
+	logger.Logf(Debug, "User alice@gmail.com entered the system")
+	require.Contains(t, buffer.String(), "User ******** entered the system")
+	require.NotContains(t, buffer.String(), "alice@gmail.com")
 }
