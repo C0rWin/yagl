@@ -77,3 +77,11 @@ func TestLoggerHidingSecrets(t *testing.T) {
 	require.Contains(t, buffer.String(), "User ******** entered the system")
 	require.NotContains(t, buffer.String(), "alice@gmail.com")
 }
+
+func TestLoggerLogsWithArgs(t *testing.T) {
+	t.Parallel()
+	buffer := bytes.NewBuffer(nil)
+	logger := New(CustomLogOut(buffer), StdFormat, Level(Debug))
+	logger.Logf(Debug, "Hello %s", "World")
+	require.Contains(t, buffer.String(), "Hello World")
+}
