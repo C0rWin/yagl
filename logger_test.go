@@ -85,3 +85,14 @@ func TestLoggerLogsWithArgs(t *testing.T) {
 	logger.Logf(Debug, "Hello %s", "World")
 	require.Contains(t, buffer.String(), "Hello World")
 }
+
+func FuzzLoggerInputs(f *testing.F) {
+	f.Add("yagl")
+
+	f.Fuzz(func(t *testing.T, s string) {
+		buffer := bytes.NewBuffer(nil)
+		logger := New(CustomLogOut(buffer), StdFormat, Level(Debug))
+		logger.Logf(Debug, s)
+		require.Contains(t, buffer.String(), s)
+	})
+}
