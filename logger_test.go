@@ -2,6 +2,7 @@ package yagl
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"sync"
 	"testing"
@@ -90,6 +91,7 @@ func FuzzLoggerInputs(f *testing.F) {
 	f.Add("yagl")
 
 	f.Fuzz(func(t *testing.T, s string) {
+		fmt.Println("XXX", s)
 		buffer := bytes.NewBuffer(nil)
 		logger := New(CustomLogOut(buffer), StdFormat, Level(Debug))
 		logger.Logf(Debug, s)
