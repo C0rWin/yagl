@@ -1,9 +1,9 @@
 package yagl
 
 import (
-	"html/template"
 	"io"
 	"os"
+	"text/template"
 )
 
 const (

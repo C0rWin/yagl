@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"path"
 	"runtime"
 	"sync"
+	"text/template"
 	"time"
 )
 
@@ -113,7 +113,10 @@ func (l *Logger) Setup(opt ...Setting) {
 // logi creates a loginfo struct for a message with given arguments
 func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
 	// mutate the message if needed
-	message := l.mapper(fmt.Sprintf(msg, args...))
+	message := l.mapper(msg)
+	if len(args) > 0 {
+		message = l.mapper(fmt.Sprintf(msg, args...))
+	}
 	if l.format == dbgFormat {
 		// in case there is debug formatting is enabled
 		// there is a need to get the caller info to
