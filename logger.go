@@ -29,13 +29,21 @@ func (l *loginfo) MarshalJSON() ([]byte, error) {
 
 // Logger is the logger struct
 type Logger struct {
-	format    string
+	// format is the logger format
+	format string
+	// level is the logger level
 	level     LogLevel
 	tmpl      *template.Template
 	mtx       sync.Mutex
 	levelOuts map[LogLevel]io.Writer
-	mapper    Mapper
-	isJSON    bool
+	// mapper is the message mapper function that is
+	// used to mutate the message before printing it
+	mapper Mapper
+	// isJSON is a flag that indicates whether the logger
+	// should print the log message as json or not
+	isJSON bool
+
+	buffersPool sync.Pool
 }
 
 // Defaults list of the default logger settings
@@ -49,7 +57,13 @@ func New(opts ...Setting) *Logger {
 
 	l := &Logger{
 		levelOuts: make(map[LogLevel]io.Writer),
+		buffersPool: sync.Pool{
+			New: func() interface{} {
+				return new(bytes.Buffer)
+			},
+		},
 	}
+
 	for _, opt := range opts {
 		opt(l)
 	}
@@ -70,7 +84,10 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		return
 	}
 
-	buffer := bytes.NewBuffer(nil)
+	// Reduce allocations by using a buffer pool
+	buffer := l.buffersPool.Get().(*bytes.Buffer)
+	defer l.buffersPool.Put(buffer)
+
 	info := l.logi(level, msg, args...)
 
 	if l.isJSON {
