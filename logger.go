@@ -84,7 +84,7 @@ func New(opts ...Setting) *Logger {
 	for _, level := range AllLevels {
 		if _, exists := l.levelOuts[level]; !exists {
 			// if not, use the info writer
-			fmt.Println("No writers defined, trying to fallback to the info writer", level)
+			fmt.Fprintln(os.Stderr, "No writers defined, trying to fallback to the info writer", level)
 			l.levelOuts[level] = os.Stdout
 		}
 	}
