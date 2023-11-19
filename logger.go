@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"runtime"
 	"sync"
@@ -94,28 +95,43 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		// if jsonMessage is enabled, marshal the loginfo struct to jsonMessage
 		jsonMessage, err := info.MarshalJSON()
 		if err != nil {
-			panic(err)
+			m := fmt.Sprintf(msg, args...)
+			info = l.logi(Error, "Failed to marshal log message [%s] to json, %+v", m, err)
+			jsonMessage, err = info.MarshalJSON()
+			if err != nil {
+				fmt.Printf("Failed to marshal log messsage [%s] to json %+v", m, err)
+			}
 		}
 		buffer.Write(jsonMessage)
 		buffer.WriteString("\n")
 	} else {
 		if err := l.tmpl.Execute(buffer, info); err != nil {
-			panic(err)
+			m := fmt.Sprintf(msg, args...)
+			if err != nil {
+				fmt.Printf("Failed to formate log messsage [%s] according to format [%s], %+v",
+					m, l.format, err)
+			}
 		}
 	}
 
+	bOut := bytes.Join([][]byte{buffer.Bytes(), []byte("\n")}, []byte(""))
 	// Write to the appropriate writer
 	if out, exists := l.levelOuts[level]; exists {
-		_, err := out.Write(buffer.Bytes())
+		_, err := out.Write(bOut)
 		if err != nil {
-			panic(err)
-		}
-		_, err = out.Write([]byte("\n"))
-		if err != nil {
-			panic(err)
+			fmt.Printf("Failed to write log message [%s] to writer level [%s],  %+v",
+				buffer.String(), level, err)
 		}
 	} else {
-		panic(fmt.Sprintf("No writer for level %s", level.String()))
+		infoOut, exists := l.levelOuts[Info]
+		if !exists {
+			fmt.Fprintf(os.Stderr, "No writers defined, failed to output log message, %s", buffer.String())
+			return
+		}
+		if _, err := infoOut.Write(bOut); err != nil {
+			fmt.Printf("Failed to write log message [%s] to writer level [%s],  %+v",
+				buffer.String(), level, err)
+		}
 	}
 
 }
