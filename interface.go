@@ -32,3 +32,6 @@ func (l LogLevel) String() string {
 	}
 	return "INFO"
 }
+
+// AllLevels is a list of all log levels.
+var AllLevels = []LogLevel{Debug, Info, Warn, Error}

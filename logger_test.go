@@ -1,8 +1,10 @@
 package yagl
 
 import (
+	"bufio"
 	"bytes"
-	"fmt"
+	"io"
+	"os"
 	"regexp"
 	"sync"
 	"testing"
@@ -58,6 +60,33 @@ func TestLoggerConcurrentUsage(t *testing.T) {
 	wg.Wait()
 }
 
+func TestLoggerWithNoSettings(t *testing.T) {
+	// Need to make sure that even if not all settings are provided,
+	// the logger will still work and function correctly
+	t.Parallel()
+	old := os.Stdout
+	defer func() {
+		os.Stdout = old
+	}()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = w
+
+	logger := New(WithMapper(noOpMapper))
+	logger.Logf(Info, "Hello world")
+
+	err = w.Close()
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, r)
+	require.NoError(t, err)
+	err = r.Close()
+	require.NoError(t, err)
+
+	require.Contains(t, buf.String(), "Hello world")
+}
+
 func TestLoggerHidingSecrets(t *testing.T) {
 	t.Parallel()
 	buffer := bytes.NewBuffer(nil)
@@ -91,10 +120,60 @@ func FuzzLoggerInputs(f *testing.F) {
 	f.Add("yagl")
 
 	f.Fuzz(func(t *testing.T, s string) {
-		fmt.Println("XXX", s)
 		buffer := bytes.NewBuffer(nil)
 		logger := New(CustomLogOut(buffer), StdFormat, Level(Debug))
 		logger.Logf(Debug, s)
 		require.Contains(t, buffer.String(), s)
 	})
+}
+
+func BenchmarkLoggerStdOut(b *testing.B) {
+	buffer := bytes.NewBuffer(nil)
+	logger := New(CustomLogOut(buffer), StdFormat, Level(Info))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		logger.Logf(Info, "Hello World %s", "benchmarking yagl")
+	}
+}
+
+func BenchmarkLoggerDebug(b *testing.B) {
+	buffer := bytes.NewBuffer(nil)
+	logger := New(CustomLogOut(buffer), StdFormat, Level(Debug))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		logger.Logf(Debug, "Hello World %s", "benchmarking yagl")
+	}
+}
+
+func BenchmarkLoggerJSONOutputInfo(b *testing.B) {
+	buffer := bytes.NewBuffer(nil)
+	logger := New(CustomLogOut(buffer), StdFormat, Level(Info), JSON)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		logger.Logf(Info, "Hello World %s", "benchmarking yagl")
+	}
+}
+
+func BenchmarkLoggerJSONOutputDebug(b *testing.B) {
+	buffer := bytes.NewBuffer(nil)
+	logger := New(CustomLogOut(buffer), StdFormat, Level(Debug), JSON)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		logger.Logf(Debug, "Hello World %s", "benchmarking yagl")
+	}
+}
+
+func BenchmarkLoggerBufferedOut(b *testing.B) {
+	bufOut := bufio.NewWriterSize(bytes.NewBuffer(nil), 100000)
+
+	defer func() {
+		err := bufOut.Flush()
+		require.NoError(b, err)
+	}()
+
+	logger := New(CustomLogOut(bufOut), StdFormat, Level(Info))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		logger.Logf(Info, "Hello World %s", "benchmarking yagl")
+	}
 }

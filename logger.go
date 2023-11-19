@@ -23,8 +23,8 @@ type loginfo struct {
 	FuncName string    `json:"func_name"`
 }
 
-// MarshalJSON marshals the loginfo struct to json
-func (l *loginfo) MarshalJSON() ([]byte, error) {
+// ToJSON marshals the loginfo struct to json
+func (l *loginfo) ToJSON() ([]byte, error) {
 	return json.Marshal(l)
 }
 
@@ -65,12 +65,28 @@ func New(opts ...Setting) *Logger {
 		},
 	}
 
+	// apply the options
 	for _, opt := range opts {
 		opt(l)
 	}
+
 	// ensure that the logger has a mapper
 	if l.mapper == nil {
 		l.mapper = noOpMapper
+	}
+
+	// if no format is defined, use the default format
+	if l.format == "" {
+		StdFormat(l)
+	}
+
+	// check whenver all levels have corresponding writers or not
+	for _, level := range AllLevels {
+		if _, exists := l.levelOuts[level]; !exists {
+			// if not, use the info writer
+			fmt.Println("No writers defined, trying to fallback to the info writer", level)
+			l.levelOuts[level] = os.Stdout
+		}
 	}
 	return l
 }
@@ -89,17 +105,17 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	buffer := l.buffersPool.Get().(*bytes.Buffer)
 	defer l.buffersPool.Put(buffer)
 
-	info := l.logi(level, msg, args...)
+	info := l.loginfo(level, msg, args...)
 
 	if l.isJSON {
 		// if jsonMessage is enabled, marshal the loginfo struct to jsonMessage
-		jsonMessage, err := info.MarshalJSON()
+		jsonMessage, err := info.ToJSON()
 		if err != nil {
 			m := fmt.Sprintf(msg, args...)
-			info = l.logi(Error, "Failed to marshal log message [%s] to json, %+v", m, err)
-			jsonMessage, err = info.MarshalJSON()
+			info = l.loginfo(Error, "Failed to marshal log message [%s] to json, %+v", m, err)
+			jsonMessage, err = info.ToJSON()
 			if err != nil {
-				fmt.Printf("Failed to marshal log messsage [%s] to json %+v", m, err)
+				fmt.Fprintf(os.Stderr, "Failed to marshal log messsage [%s] to json %+v", m, err)
 			}
 		}
 		buffer.Write(jsonMessage)
@@ -108,7 +124,7 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		if err := l.tmpl.Execute(buffer, info); err != nil {
 			m := fmt.Sprintf(msg, args...)
 			if err != nil {
-				fmt.Printf("Failed to formate log messsage [%s] according to format [%s], %+v",
+				fmt.Fprintf(os.Stderr, "Failed to formate log messsage [%s] according to format [%s], %+v",
 					m, l.format, err)
 			}
 		}
@@ -119,17 +135,18 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	if out, exists := l.levelOuts[level]; exists {
 		_, err := out.Write(bOut)
 		if err != nil {
-			fmt.Printf("Failed to write log message [%s] to writer level [%s],  %+v",
+			fmt.Fprintf(os.Stderr, "Failed to write log message [%s] to writer level [%s],  %+v",
 				buffer.String(), level, err)
 		}
 	} else {
+		fmt.Fprintf(os.Stderr, "No writers defined, trying to fallback to the info writer")
 		infoOut, exists := l.levelOuts[Info]
 		if !exists {
 			fmt.Fprintf(os.Stderr, "No writers defined, failed to output log message, %s", buffer.String())
 			return
 		}
 		if _, err := infoOut.Write(bOut); err != nil {
-			fmt.Printf("Failed to write log message [%s] to writer level [%s],  %+v",
+			fmt.Fprintf(os.Stderr, "Failed to write log message [%s] to writer level [%s],  %+v",
 				buffer.String(), level, err)
 		}
 	}
@@ -143,8 +160,8 @@ func (l *Logger) Setup(opt ...Setting) {
 	}
 }
 
-// logi creates a loginfo struct for a message with given arguments
-func (l *Logger) logi(level LogLevel, msg string, args ...interface{}) *loginfo {
+// loginfo creates a loginfo struct for a message with given arguments
+func (l *Logger) loginfo(level LogLevel, msg string, args ...interface{}) *loginfo {
 	// mutate the message if needed
 	message := l.mapper(msg)
 	if len(args) > 0 {
