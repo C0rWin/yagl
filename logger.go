@@ -17,7 +17,7 @@ import (
 // and information to be printed along aside with the message
 type loginfo struct {
 	DateTime time.Time `json:"datetime"`
-	Level    LogLevel  `json:"level"`
+	Level    string    `json:"level"`
 	Message  string    `json:"message"`
 	PkgName  string    `json:"package_name"`
 	FuncName string    `json:"func_name"`
@@ -103,6 +103,7 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 
 	// Reduce allocations by using a buffer pool
 	buffer := l.buffersPool.Get().(*bytes.Buffer)
+	defer buffer.Reset()
 	defer l.buffersPool.Put(buffer)
 
 	info := l.loginfo(level, msg, args...)
@@ -174,7 +175,7 @@ func (l *Logger) loginfo(level LogLevel, msg string, args ...interface{}) *login
 		pkgName, funcName, _ := getCallerInfo() // get package name and function name
 		return &loginfo{
 			DateTime: time.Now(),
-			Level:    level,
+			Level:    level.String(),
 			Message:  message,
 			PkgName:  pkgName,
 			FuncName: funcName,
@@ -182,7 +183,7 @@ func (l *Logger) loginfo(level LogLevel, msg string, args ...interface{}) *login
 	}
 	return &loginfo{
 		DateTime: time.Now(),
-		Level:    level,
+		Level:    level.String(),
 		Message:  message,
 	}
 }

@@ -33,4 +33,9 @@ func main() {
 	// The output should be similar to this:
 	// "[2023-11-09 00:56:33] [DEBUG]: [main.main]: This is a debug message"
 	logger.Logf(yagl.Debug, "This is a debug message")
+
+	logger.Setup(yagl.JSON)
+	// The output should be similar to this:
+	// {"level":"DEBUG","time":"2023-11-09 00:56:33","message":"This is a debug message","package":"main","function":"main.main"}
+	logger.Logf(yagl.Debug, "This is a debug message")
 }
