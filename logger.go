@@ -134,6 +134,10 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	bOut := bytes.Join([][]byte{buffer.Bytes(), []byte("\n")}, []byte(""))
 	// Write to the appropriate writer
 	if out, exists := l.levelOuts[level]; exists {
+		if out == nil {
+			fmt.Fprintf(os.Stderr, "No writers defined, failed to output log message, %s", buffer.String())
+			return
+		}
 		_, err := out.Write(bOut)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write log message [%s] to writer level [%s],  %+v",
@@ -143,6 +147,10 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, "No writers defined, trying to fallback to the info writer")
 		infoOut, exists := l.levelOuts[Info]
 		if !exists {
+			fmt.Fprintf(os.Stderr, "No writers defined, failed to output log message, %s", buffer.String())
+			return
+		}
+		if infoOut == nil {
 			fmt.Fprintf(os.Stderr, "No writers defined, failed to output log message, %s", buffer.String())
 			return
 		}
