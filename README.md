@@ -1,5 +1,9 @@
 # YAGL (Yet Another Go Logger)
 
+[![Coverage Status](https://coveralls.io/repos/github/C0rWin/yagl/badge.svg?branch=coveralls)](https://coveralls.io/github/C0rWin/yagl?branch=coveralls)
+[![Build Status](https://github.com/C0rwin/yagl/actions/workflows/go.yml/badge.svg)](https://github.com/C0rwin/yagl/actions/workflows/go.yml/badge.svg)
+
+
 YAGL is a lightweight, powerful, and flexible logging library for Go. It provides an alternative implementation for application logging, focusing on simplicity and customizability.
 
 ## Features
