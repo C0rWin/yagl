@@ -57,6 +57,8 @@ func DefaultStd(l *Logger) {
 		Info:  os.Stdout,
 		Warn:  os.Stdout,
 		Error: os.Stderr,
+		Panic: os.Stderr,
+		Fatal: os.Stderr,
 	}
 }
 

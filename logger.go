@@ -132,6 +132,11 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 	}
 
 	bOut := bytes.Join([][]byte{buffer.Bytes(), []byte("\n")}, []byte(""))
+	// Check if the log level is panic, output the message and panic
+	if level == Panic {
+		panic(string(bOut))
+	}
+
 	// Write to the appropriate writer
 	if out, exists := l.levelOuts[level]; exists {
 		if out == nil {
@@ -160,6 +165,10 @@ func (l *Logger) Logf(level LogLevel, msg string, args ...interface{}) {
 		}
 	}
 
+	// Check if the log level is fatal, output the message and exit
+	if level == Fatal {
+		os.Exit(1)
+	}
 }
 
 // Setup sets the logger options
