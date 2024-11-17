@@ -15,6 +15,10 @@ const (
 	Warn
 	// Error log level
 	Error
+	// Panic log level
+	Panic
+	// Fatal log level
+	Fatal
 )
 
 var logLevelStrings = map[LogLevel]string{
@@ -22,6 +26,8 @@ var logLevelStrings = map[LogLevel]string{
 	Warn:  "WARN",
 	Info:  "INFO",
 	Error: "ERROR",
+	Panic: "PANIC",
+	Fatal: "FATAL",
 }
 
 // String returns the string representation of the LogLevel.
